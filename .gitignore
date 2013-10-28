@@ -1,3 +1,7 @@
+*~
+.nfs*
+
+
 # Object files
 *.o
 *.ko
