@@ -1,6 +1,8 @@
 *~
 .nfs*
 
+orderSearcher
+
 
 # Object files
 *.o
