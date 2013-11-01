@@ -1,7 +1,7 @@
 all: orderSearcher
 
 orderSearcher: orderSearcher.c
-	gcc -Wall orderSearcher.c -o orderSearcher
+	gcc -Wall orderSearcher.c -o orderSearcher -lpthread
 
 clean:
 	rm orderSearcher
