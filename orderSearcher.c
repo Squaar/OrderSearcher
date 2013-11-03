@@ -9,6 +9,14 @@
 
 void *thread(void *arg);
 
+int range,			// The range, defined as the difference between the largest and smallest value in the data set.
+	maxAbsChange,	// Maximum absolute value of change from one value to the next
+	sumAbsChange;	// The sum of ( absolute value of ( change from one value to the next ))
+double average,		// Average (mean)
+	stdDev,			// Standard deviation --> sqrt(avg((xi-AVG)^2))
+	stdDevChange;	// Standard deviation of the change between each element
+
+
 int main(int argc, char **argv){
 	if(argc != 3){
 		printf("Invalid number of args.\n");
@@ -61,22 +69,24 @@ int main(int argc, char **argv){
 	    memcpy(arg, &inBuffer[i*size/numThreads], size/numThreads);
 		arg[size/numThreads] = '\0';
 		//printf("%s\n=========================================================================\n", arg);
-		if((pthread_create(&threads[i], NULL, &thread, (void *) arg)) != 0){
+		if((pthread_create(&threads[i], NULL, thread, (void *) arg)) != 0){ //ALWAYS THE LAST ONE?
 			perror("Error createing thread");
 			exit(-1);
 		}
 	}
 
+	char *rets[size/numThreads+1];
+
 	//clean up threads
 	for(i=0; i<numThreads; i++){
-		pthread_join(threads[i], NULL);
+		pthread_join(threads[i], (void **) &rets[i]);
+		//printf("%s\n", (char *) rets[i]);
 	}
 
 	return 0; 
 }
 
 void *thread(void *arg){
-	printf("%s\n", (char *) arg);
-	printf("================================================================================\n");
-	return arg;
+	//printf("%s\n================================================================================\n", (char *) arg);
+	pthread_exit(arg);
 }
