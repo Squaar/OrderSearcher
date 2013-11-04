@@ -26,6 +26,7 @@ void signal(int sem, int semID, int nBuffers);
 struct threadArgs{
 	int semID;
 	int threadID;
+	size_t nargs;
 	void *arg;
 };
 
@@ -111,9 +112,12 @@ int main(int argc, char **argv){
 		struct threadArgs args;
 		args.semID = semid;
 		args.threadID = i;
-		char arg[size/numThreads +1];
+
+		char arg[size/numThreads];
 	    memcpy(arg, &inBuffer[i*size/numThreads], size/numThreads);
-		arg[size/numThreads] = '\0';
+		//arg[size/numThreads] = NULL;
+		args.nargs = size/numThreads;
+		args.arg = arg;
 		//printf("%s\n=========================================================================\n", arg);
 		if((pthread_create(&threads[i], NULL, thread, (void *) &args)) != 0){ //ALWAYS THE LAST ONE?
 			perror("Error createing thread");
@@ -141,20 +145,18 @@ int main(int argc, char **argv){
 void *thread(void *arg){
 	//printf("%s\n================================================================================\n", (char *) arg);
 
-	struct threadArgs args = *((struct threadArgs*) arg);
+	struct threadArgs args = *((struct threadArgs*) arg); //convert back to struct
+	int *ints = (int *) args.arg; //array of ints for math
 
 	int i;
 	double sum = 0;
-	double average;
-	int *ints = (int *) arg;
+	double average = 0;
 
-	for(i=0; (char) ints[i] != '\0'; i++){
+	for(i=0; i<args.nargs; i++){
 		sum += ints[i];
 	}
 
-	int num = i;
-
-	average = sum/num;
+	average = sum/args.nargs;
 
 	printf("Thread: %i, Average: %f\n", args.threadID, average);
 
