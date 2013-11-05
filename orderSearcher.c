@@ -49,7 +49,7 @@ int main(int argc, char **argv){
 	int numThreads = strtol(argv[2], 0, 10);
 
 	if(numThreads < 1){
-		printf("Must have at least one thread.");
+		printf("Must have at least one thread.\n");
 		exit(-1);
 	}
 
@@ -69,7 +69,7 @@ int main(int argc, char **argv){
 	char *inBuffer = malloc(size);
 	size_t readBytes = fread(inBuffer, 1, size, fd);
 	if(readBytes != size){
-		printf("Error reading from file");
+		printf("Error reading from file\n");
 		exit(-1);
 	}
 
@@ -100,32 +100,28 @@ int main(int argc, char **argv){
 		}
 	}
 
-	//print data
-	/*printf("%s\n", inBuffer);
-	for(i=0; i<size; i++){
-		printf("0x%X\n", inBuffer[i]);
-	}*/
-
 	//create threads
 	pthread_t threads[numThreads];
-	for(i=0; i<numThreads; i++){
-		struct threadArgs args;
-		args.semID = semid;
-		args.threadID = i;
+	struct threadArgs argsArr[numThreads];
+	char args[numThreads][size/numThreads];
 
-		char arg[size/numThreads];
-	    memcpy(arg, &inBuffer[i*size/numThreads], size/numThreads);
-		//arg[size/numThreads] = NULL;
-		args.nargs = size/numThreads;
-		args.arg = arg;
+	for(i=0; i<numThreads; i++){
+		argsArr[i].semID = semid;
+		argsArr[i].threadID = i;
+
+	    memcpy(args[i], &inBuffer[i*size/numThreads], size/numThreads);
+	    
+		argsArr[i].nargs = size/numThreads;
+		argsArr[i].arg = args[i];
+
 		//printf("%s\n=========================================================================\n", arg);
-		if((pthread_create(&threads[i], NULL, thread, (void *) &args)) != 0){ //ALWAYS THE LAST ONE?
+		if((pthread_create(&threads[i], NULL, thread, (void *) &argsArr[i])) != 0){
 			perror("Error createing thread");
 			exit(-1);
 		}
 	}
 
-	char *rets[size/numThreads+1];
+	void *rets[numThreads];
 
 	//clean up threads
 	for(i=0; i<numThreads; i++){
@@ -158,10 +154,12 @@ void *thread(void *arg){
 
 	average = sum/args.nargs;
 
-	printf("Thread: %i, Average: %f\n", args.threadID, average);
+	printf("Thread: %i\n\tAverage: %f\n", args.threadID, average);
 
 	pthread_exit(arg);
 }
+
+
 
 void wait(int sem, int semID, int nBuffers){
 	struct sembuf sembuffer;
