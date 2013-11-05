@@ -53,6 +53,8 @@ int main(int argc, char **argv){
 		exit(-1);
 	}
 
+	printf("Matt Dumford - mdumford\nmdumfo2@uic.edu\n\n");
+
 	//open file
 	FILE *fd = fopen(file, "rb");
 	if(fd == NULL){
