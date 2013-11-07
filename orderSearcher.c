@@ -68,30 +68,32 @@ int main(int argc, char **argv){
 	fseek(fd, 0L, SEEK_SET);
 
 	printf("Size: %li\n", size);
-	printf("char: %i\n", (int) sizeof(char));
-	printf("int: %i\n", (int) sizeof(int));
-	printf("short: %i\n\n", (int) sizeof(short));
 	fflush(stdout);
 
 	size -= size % sizeof(char);
-	printf("Size: %li\n", size);
+	printf("Size: %li\n\n", size);
 	fflush(stdout);
 
 	//read in from file
-	void *inBuffer = malloc(size);
+	char inBuffer[size];
 	size_t readBytes = fread(inBuffer, 1, size, fd);
 	if(readBytes != size){
 		printf("Error reading from file\n");
 		exit(-1);
 	}
 
-	int *ints = (int *) inBuffer;
-	free(inBuffer);
+	int i;
+
+	//convert to ints
+	int ints[size];
+	for(i=0; i<size; i++){
+		ints[i] = inBuffer[i];
+	}
 
 	//close file
 	fclose(fd);
 
-	int i;
+
 
 	//create path of orderSearcher.c executable for ftok
 	char path[1024];
@@ -121,7 +123,6 @@ int main(int argc, char **argv){
 	//create threads
 	pthread_t threads[numThreads];
 	struct threadArgs argsArr[numThreads];
-	//char args[numThreads][size/numThreads];
 
 	for(i=0; i<numThreads; i++){
 		argsArr[i].semID = semid;
@@ -130,18 +131,18 @@ int main(int argc, char **argv){
 		printf("BEFORE MEMCPY\n");
 		fflush(stdout);
 
-	    //memcpy(args[i], &ints[i*size/numThreads], size/numThreads);
-
 	    printf("AFTER MEMCPY\n");
 		fflush(stdout);
 	    
-		argsArr[i].nargs = size/sizeof(int)/numThreads;
+		argsArr[i].nargs = size/numThreads;
 		argsArr[i].arg = &ints[i*size/numThreads];
+
+		printf("nargs: %i\n", argsArr[i].nargs);
+		fflush(stdout);
 
 		printf("DONE SETTING UP ARGS\n");
 		fflush(stdout);
 
-		//printf("%s\n=========================================================================\n", arg);
 		if((pthread_create(&threads[i], NULL, thread, (void *) &argsArr[i])) != 0){
 			perror("Error createing thread");
 			exit(-1);
@@ -168,16 +169,14 @@ int main(int argc, char **argv){
 	return 0; 
 }
 
-void *thread(void *arg){
-	//printf("%s\n================================================================================\n", (char *) arg);
-	
+void *thread(void *arg){	
 	printf("START OF THREAD\n");
 	fflush(stdout);
 
 	struct threadArgs args = *((struct threadArgs*) arg); //convert back to struct
-	int *ints = (int *) args.arg; //array of ints for math
+	int *ints = args.arg; //array of ints for math
 
-	printf("AFTER INTS MALLOC\n");
+	printf("AFTER INTS CAST\n");
 	fflush(stdout);
 
 	int i;
@@ -185,9 +184,16 @@ void *thread(void *arg){
 	double average = 0;
 
 	for(i=0; i<args.nargs; i++){
+		// printf("THREAD: %i, I: %i\n", args.threadID, i);
+		// fflush(stdout);
+
+
 		sum += ints[i];
+		// printf("AFTER ADDITION\n");
+		// fflush(stdout);
+
 		//printf("%i\n", ints[i]);
-		fflush(stdout);
+		//fflush(stdout);
 	}
 
 	average = sum/args.nargs;
