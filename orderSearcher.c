@@ -27,7 +27,7 @@ struct threadArgs{
 	int semID;
 	int threadID;
 	size_t nargs;
-	void *arg;
+	int *arg;
 };
 
 int range,			// The range, defined as the difference between the largest and smallest value in the data set.
@@ -67,27 +67,40 @@ int main(int argc, char **argv){
 	long size = ftell(fd);
 	fseek(fd, 0L, SEEK_SET);
 
+	printf("Size: %li\n", size);
+	printf("char: %i\n", (int) sizeof(char));
+	printf("int: %i\n", (int) sizeof(int));
+	printf("short: %i\n\n", (int) sizeof(short));
+	fflush(stdout);
+
+	size -= size % sizeof(char);
+	printf("Size: %li\n", size);
+	fflush(stdout);
+
 	//read in from file
-	char *inBuffer = malloc(size);
+	void *inBuffer = malloc(size);
 	size_t readBytes = fread(inBuffer, 1, size, fd);
 	if(readBytes != size){
 		printf("Error reading from file\n");
 		exit(-1);
 	}
 
+	int *ints = (int *) inBuffer;
+	free(inBuffer);
+
 	//close file
 	fclose(fd);
 
 	int i;
 
-	//create path of worker executable for ftok
-	char workerPath[1024];
-	getcwd(workerPath, sizeof(workerPath));
-	strcat(workerPath, "/worker");
+	//create path of orderSearcher.c executable for ftok
+	char path[1024];
+	getcwd(path, sizeof(path));
+	strcat(path, "/orderSearcher.c");
 
 	//create semaphores
 	int semid;
-	if((semid = semget(ftok(workerPath, 'O'), NUM_GLOBALS, 00644|IPC_CREAT)) == -1){
+	if((semid = semget(ftok(path, 'O'), NUM_GLOBALS, 00644|IPC_CREAT)) == -1){
 		perror("Error creating semaphores ");
 		exit(-1);
 	}
@@ -102,19 +115,31 @@ int main(int argc, char **argv){
 		}
 	}
 
+	printf("ABOUT TO THREADS\n");
+	fflush(stdout);
+
 	//create threads
 	pthread_t threads[numThreads];
 	struct threadArgs argsArr[numThreads];
-	char args[numThreads][size/numThreads];
+	//char args[numThreads][size/numThreads];
 
 	for(i=0; i<numThreads; i++){
 		argsArr[i].semID = semid;
 		argsArr[i].threadID = i;
 
-	    memcpy(args[i], &inBuffer[i*size/numThreads], size/numThreads);
+		printf("BEFORE MEMCPY\n");
+		fflush(stdout);
+
+	    //memcpy(args[i], &ints[i*size/numThreads], size/numThreads);
+
+	    printf("AFTER MEMCPY\n");
+		fflush(stdout);
 	    
-		argsArr[i].nargs = size/numThreads;
-		argsArr[i].arg = args[i];
+		argsArr[i].nargs = size/sizeof(int)/numThreads;
+		argsArr[i].arg = &ints[i*size/numThreads];
+
+		printf("DONE SETTING UP ARGS\n");
+		fflush(stdout);
 
 		//printf("%s\n=========================================================================\n", arg);
 		if((pthread_create(&threads[i], NULL, thread, (void *) &argsArr[i])) != 0){
@@ -130,6 +155,9 @@ int main(int argc, char **argv){
 		pthread_join(threads[i], (void **) &rets[i]);
 		//printf("%s\n", (char *) rets[i]);
 	}
+
+	printf("DONE WITH THREADS\n");
+	fflush(stdout);
 	
 	//remove semaphores
 	if(semctl(semid, 0, IPC_RMID) == -1){
@@ -142,9 +170,15 @@ int main(int argc, char **argv){
 
 void *thread(void *arg){
 	//printf("%s\n================================================================================\n", (char *) arg);
+	
+	printf("START OF THREAD\n");
+	fflush(stdout);
 
 	struct threadArgs args = *((struct threadArgs*) arg); //convert back to struct
 	int *ints = (int *) args.arg; //array of ints for math
+
+	printf("AFTER INTS MALLOC\n");
+	fflush(stdout);
 
 	int i;
 	double sum = 0;
@@ -152,11 +186,19 @@ void *thread(void *arg){
 
 	for(i=0; i<args.nargs; i++){
 		sum += ints[i];
+		//printf("%i\n", ints[i]);
+		fflush(stdout);
 	}
 
 	average = sum/args.nargs;
 
+	printf("AFTER AVERAGE\n");
+	fflush(stdout);
+
 	printf("Thread: %i\n\tAverage: %f\n", args.threadID, average);
+
+	printf("DONE WITH THREAD\n");
+	fflush(stdout);
 
 	pthread_exit(arg);
 }
