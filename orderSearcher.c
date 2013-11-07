@@ -67,13 +67,6 @@ int main(int argc, char **argv){
 	long size = ftell(fd);
 	fseek(fd, 0L, SEEK_SET);
 
-	printf("Size: %li\n", size);
-	fflush(stdout);
-
-	size -= size % sizeof(char);
-	printf("Size: %li\n\n", size);
-	fflush(stdout);
-
 	//read in from file
 	char inBuffer[size];
 	size_t readBytes = fread(inBuffer, 1, size, fd);
@@ -117,9 +110,6 @@ int main(int argc, char **argv){
 		}
 	}
 
-	printf("ABOUT TO THREADS\n");
-	fflush(stdout);
-
 	//create threads
 	pthread_t threads[numThreads];
 	struct threadArgs argsArr[numThreads];
@@ -127,21 +117,8 @@ int main(int argc, char **argv){
 	for(i=0; i<numThreads; i++){
 		argsArr[i].semID = semid;
 		argsArr[i].threadID = i;
-
-		printf("BEFORE MEMCPY\n");
-		fflush(stdout);
-
-	    printf("AFTER MEMCPY\n");
-		fflush(stdout);
-	    
 		argsArr[i].nargs = size/numThreads;
 		argsArr[i].arg = &ints[i*size/numThreads];
-
-		printf("nargs: %i\n", argsArr[i].nargs);
-		fflush(stdout);
-
-		printf("DONE SETTING UP ARGS\n");
-		fflush(stdout);
 
 		if((pthread_create(&threads[i], NULL, thread, (void *) &argsArr[i])) != 0){
 			perror("Error createing thread");
@@ -157,9 +134,6 @@ int main(int argc, char **argv){
 		//printf("%s\n", (char *) rets[i]);
 	}
 
-	printf("DONE WITH THREADS\n");
-	fflush(stdout);
-	
 	//remove semaphores
 	if(semctl(semid, 0, IPC_RMID) == -1){
 		perror("Error removing semaphores ");
@@ -170,41 +144,20 @@ int main(int argc, char **argv){
 }
 
 void *thread(void *arg){	
-	printf("START OF THREAD\n");
-	fflush(stdout);
-
 	struct threadArgs args = *((struct threadArgs*) arg); //convert back to struct
 	int *ints = args.arg; //array of ints for math
-
-	printf("AFTER INTS CAST\n");
-	fflush(stdout);
 
 	int i;
 	double sum = 0;
 	double average = 0;
 
 	for(i=0; i<args.nargs; i++){
-		// printf("THREAD: %i, I: %i\n", args.threadID, i);
-		// fflush(stdout);
-
-
 		sum += ints[i];
-		// printf("AFTER ADDITION\n");
-		// fflush(stdout);
-
-		//printf("%i\n", ints[i]);
-		//fflush(stdout);
 	}
 
 	average = sum/args.nargs;
 
-	printf("AFTER AVERAGE\n");
-	fflush(stdout);
-
 	printf("Thread: %i\n\tAverage: %f\n", args.threadID, average);
-
-	printf("DONE WITH THREAD\n");
-	fflush(stdout);
 
 	pthread_exit(arg);
 }
