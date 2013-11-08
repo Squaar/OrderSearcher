@@ -65,25 +65,38 @@ int main(int argc, char **argv){
 	}
 
 	//get size of file
-	fseek(fd, 0L, SEEK_END);
-	long size = ftell(fd);
-	fseek(fd, 0L, SEEK_SET);
+	if(fseek(fd, 0L, SEEK_END) != 0){
+		printf("Error Seeking");
+		exit(-1);
+	}
+	long size = 0;
+	if((size = ftell(fd)) == -1L){
+		printf("Error Telling");
+		exit(-1);
+	}
+	if(fseek(fd, 0L, SEEK_SET) != 0){
+		printf("Error Seeking");
+		exit(-1);
+	}
 
 	//read in from file
-	char inBuffer[size];
-	size_t readBytes = fread(inBuffer, 1, size, fd);
-	if(readBytes != size){
+	char *inBuffer = malloc(size * sizeof(char));
+	size_t readBytes = 0;
+	readBytes = fread(inBuffer, size, 1, fd);
+	if(readBytes != 1){
 		printf("Error reading from file\n");
 		exit(-1);
 	}
 
-	int i;
+	int i=0;
 
 	//convert to ints
-	int ints[size];
+	int *ints = malloc(size * sizeof(int));
 	for(i=0; i<size; i++){
 		ints[i] = inBuffer[i];
 	}
+
+	free(inBuffer);
 
 	//close file
 	fclose(fd);
@@ -142,7 +155,7 @@ int main(int argc, char **argv){
 		perror("Error removing semaphores ");
 		exit(-1);
 	}
-
+	free(ints);
 	return 0; 
 }
 
