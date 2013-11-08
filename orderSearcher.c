@@ -7,6 +7,7 @@
 #include <pthread.h>
 #include <errno.h>
 #include <unistd.h>
+#include <math.h>
 #include <sys/sem.h>
 
 #if defined(_GNU_LIBRARY_) && !defined(_SEM_SEMUN_UNDEFINED_)
@@ -20,8 +21,8 @@ union semun{
 #endif
 
 void *thread(void *arg);
-void wait(int sem, int semID, int nBuffers);
-void signal(int sem, int semID, int nBuffers);
+void wait(int sem, int semID);
+void signal(int sem, int semID);
 
 struct threadArgs{
 	int semID;
@@ -30,11 +31,12 @@ struct threadArgs{
 	int *arg;
 };
 
-int range,			// The range, defined as the difference between the largest and smallest value in the data set.
-	maxAbsChange,	// Maximum absolute value of change from one value to the next
-	sumAbsChange;	// The sum of ( absolute value of ( change from one value to the next ))
-double stdDev,		// Standard deviation --> sqrt(avg((xi-AVG)^2))
-	stdDevChange;	// Standard deviation of the change between each element
+int range = 0;				// The range, defined as the difference between the largest and smallest value in the data set.
+int maxAbsChange = 0;		// Maximum absolute value of change from one value to the next
+int sumAbsChange = 0;		// The sum of ( absolute value of ( change from one value to the next ))
+double stdDev = 0;			// Standard deviation --> sqrt(avg((xi-AVG)^2))
+double stdDevChange = 0;	// Standard deviation of the change between each element
+
 
 const int NUM_GLOBALS = 5;
 
@@ -86,8 +88,6 @@ int main(int argc, char **argv){
 	//close file
 	fclose(fd);
 
-
-
 	//create path of orderSearcher.c executable for ftok
 	char path[1024];
 	getcwd(path, sizeof(path));
@@ -134,6 +134,9 @@ int main(int argc, char **argv){
 		//printf("%s\n", (char *) rets[i]);
 	}
 
+	//print best results
+	printf("\nBest Standard Deviation: %f\n", stdDev);
+
 	//remove semaphores
 	if(semctl(semid, 0, IPC_RMID) == -1){
 		perror("Error removing semaphores ");
@@ -150,6 +153,9 @@ void *thread(void *arg){
 	int i;
 	double sum = 0;
 	double average = 0;
+	double devSum=0;
+
+	int stdDevStill = 1;
 
 	for(i=0; i<args.nargs; i++){
 		sum += ints[i];
@@ -157,14 +163,31 @@ void *thread(void *arg){
 
 	average = sum/args.nargs;
 
-	printf("Thread: %i\n\tAverage: %f\n", args.threadID, average);
+	if(stdDevStill){
+	for(i=0; i<args.nargs; i++){
+		devSum += pow(ints[i]-average, 2);
+		if(stdDev !=0){ //check if this stdDev can still possibly be the best
+			if(devSum > pow(stdDev, 2) * args.nargs)
+				stdDevStill = 0;
+		}
+	}
+
+	if(stdDev == 0){
+		wait(3, args.semID);
+		stdDev = sqrt(devSum/args.nargs);
+		signal(3, args.semID);
+	}
+	}
+
+	//stats for this thread
+	//printf("Thread: %i\n\tAverage: %f\n", args.threadID, average);
 
 	pthread_exit(arg);
 }
 
 
 
-void wait(int sem, int semID, int nBuffers){
+void wait(int sem, int semID){
 	struct sembuf sembuffer;
 	sembuffer.sem_num = sem;
 	sembuffer.sem_op = -1;
@@ -176,7 +199,7 @@ void wait(int sem, int semID, int nBuffers){
 	}
 }
 
-void signal(int sem, int semID, int nBuffers){
+void signal(int sem, int semID){
 	struct sembuf sembuffer;
 	sembuffer.sem_num = sem;
 	sembuffer.sem_op = 1;
