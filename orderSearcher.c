@@ -148,7 +148,8 @@ int main(int argc, char **argv){
 	}
 
 	//print best results
-	printf("\nBest Standard Deviation: %f\n", stdDev);
+	printf("\nBest Range: %i\n", range);
+	printf("Best Standard Deviation: %f\n", stdDev);
 
 	//remove semaphores
 	if(semctl(semid, 0, IPC_RMID) == -1){
@@ -164,6 +165,8 @@ void *thread(void *arg){
 	int *ints = args.arg; //array of ints for math
 
 	int i;
+	int max = ints[0];
+	int min = ints[0];
 	double sum = 0;
 	double average = 0;
 	double devSum=0;
@@ -172,10 +175,25 @@ void *thread(void *arg){
 
 	for(i=0; i<args.nargs; i++){
 		sum += ints[i];
+		if(ints[i] > max)
+			max = ints[i];
+		if(ints[i] < min)
+			min = ints[i];
 	}
+
+	printf("max: %i\nmin: %i\n", max, min);
 
 	average = sum/args.nargs;
 
+	//compute range
+	if(range == 0 || max-min < range){
+		wait(0, args.semID);
+		range = max-min;
+		printf("range: %i\n", range);
+		signal(0, args.semID);
+	}
+
+	//compute standard deviation
 	if(stdDevStill){
 		for(i=0; i<args.nargs; i++){
 			devSum += pow(ints[i]-average, 2);
@@ -188,7 +206,6 @@ void *thread(void *arg){
 		if(stdDev == 0 || stdDev > sqrt(devSum/args.nargs)){
 			wait(3, args.semID);
 			stdDev = sqrt(devSum/args.nargs);
-			printf("stdDev: %f\n", stdDev);
 			signal(3, args.semID);
 		}
 	}
