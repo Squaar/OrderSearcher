@@ -31,11 +31,11 @@ struct threadArgs{
 	int *arg;
 };
 
-int range = 0;				// The range, defined as the difference between the largest and smallest value in the data set.
-int maxAbsChange = 0;		// Maximum absolute value of change from one value to the next
-int sumAbsChange = 0;		// The sum of ( absolute value of ( change from one value to the next ))
-double stdDev = 0;			// Standard deviation --> sqrt(avg((xi-AVG)^2))
-double stdDevChange = 0;	// Standard deviation of the change between each element
+int range = 0;				//0 - The range, defined as the difference between the largest and smallest value in the data set.
+int maxAbsChange = 0;		//1 - Maximum absolute value of change from one value to the next
+int sumAbsChange = 0;		//2 - The sum of ( absolute value of ( change from one value to the next ))
+double stdDev = 0;			//3 - Standard deviation --> sqrt(avg((xi-AVG)^2))
+double stdDevChange = 0;	//4 - Standard deviation of the change between each element
 
 
 const int NUM_GLOBALS = 5;
@@ -148,8 +148,11 @@ int main(int argc, char **argv){
 	}
 
 	//print best results
-	printf("\nBest Range: %i\n", range);
-	printf("Best Standard Deviation: %f\n", stdDev);
+	printf("\nMinimum Range: %i\n", range);
+	printf("Minimum Change between values: %i\n", maxAbsChange);
+	printf("minimum sum of changes between values: %i\n", sumAbsChange);
+	printf("Minimum Standard Deviation: %f\n", stdDev);
+	
 
 	//remove semaphores
 	if(semctl(semid, 0, IPC_RMID) == -1){
@@ -167,21 +170,39 @@ void *thread(void *arg){
 	int i;
 	int max = ints[0];
 	int min = ints[0];
+	int maxChange = abs(ints[0]-ints[1]);
+	int sumChange = 0;
 	double sum = 0;
 	double average = 0;
 	double devSum=0;
 
 	int stdDevStill = 1;
+	int sumChangeStill = 1;
 
 	for(i=0; i<args.nargs; i++){
 		sum += ints[i];
+
+		if(i != args.nargs-1){
+			//find max change between values
+			if(abs(ints[i]-ints[i+1]) < maxChange)
+				maxChange = abs(ints[i] - ints[i+1]);
+
+			//compute sum of change between values
+			if(sumChangeStill){
+				sumChange += abs(ints[i] - ints[i+1]);
+				//check if this sumAbsChange can still be the best
+				if(sumAbsChange !=0 && sumChange > sumAbsChange)
+					sumChangeStill = 0;
+			}
+		}
+
+		//find max and min values
 		if(ints[i] > max)
 			max = ints[i];
 		if(ints[i] < min)
 			min = ints[i];
 	}
 
-	printf("max: %i\nmin: %i\n", max, min);
 
 	average = sum/args.nargs;
 
@@ -189,25 +210,38 @@ void *thread(void *arg){
 	if(range == 0 || max-min < range){
 		wait(0, args.semID);
 		range = max-min;
-		printf("range: %i\n", range);
 		signal(0, args.semID);
 	}
 
+	//compute maximum absolute change
+	if(maxAbsChange == 0 || maxChange < maxAbsChange){
+		wait(1, args.semID);
+		maxAbsChange = maxChange;
+		signal(1, args.semID);
+	}
+
+	//set sumAbsChange
+	if(sumChangeStill && (sumAbsChange == 0 || sumChange < sumAbsChange)){
+		wait(2, args.semID);
+		sumAbsChange = sumChange;
+		signal(2, args.semID);
+	}
+
 	//compute standard deviation
-	if(stdDevStill){
-		for(i=0; i<args.nargs; i++){
+	for(i=0; i<args.nargs; i++){
+		if(stdDevStill){
 			devSum += pow(ints[i]-average, 2);
-			if(stdDev !=0){ //check if this stdDev can still possibly be the best
-				if(devSum > pow(stdDev, 2) * args.nargs)
-					stdDevStill = 0;
-			}
+			//check if this stdDev can still possibly be the best
+			if(stdDev !=0 && devSum > pow(stdDev, 2) * args.nargs)
+				stdDevStill = 0;
 		}
-	
-		if(stdDev == 0 || stdDev > sqrt(devSum/args.nargs)){
-			wait(3, args.semID);
-			stdDev = sqrt(devSum/args.nargs);
-			signal(3, args.semID);
-		}
+		
+	}
+
+	if(stdDevStill && (stdDev == 0 || stdDev > sqrt(devSum/args.nargs))){
+		wait(3, args.semID);
+		stdDev = sqrt(devSum/args.nargs);
+		signal(3, args.semID);
 	}
 
 	//stats for this thread
