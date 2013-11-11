@@ -152,6 +152,7 @@ int main(int argc, char **argv){
 	printf("Minimum Change between values: %i\n", maxAbsChange);
 	printf("minimum sum of changes between values: %i\n", sumAbsChange);
 	printf("Minimum Standard Deviation: %f\n", stdDev);
+	printf("Minimum standard deviation of changes between values: %f\n", stdDevChange);
 	
 
 	//remove semaphores
@@ -174,10 +175,13 @@ void *thread(void *arg){
 	int sumChange = 0;
 	double sum = 0;
 	double average = 0;
-	double devSum=0;
+	double avgChange = 0;
+	double devSum = 0;
+	double devChangeSum = 0;
 
 	int stdDevStill = 1;
 	int sumChangeStill = 1;
+	int stdDevChangeStill = 1;
 
 	for(i=0; i<args.nargs; i++){
 		sum += ints[i];
@@ -188,12 +192,7 @@ void *thread(void *arg){
 				maxChange = abs(ints[i] - ints[i+1]);
 
 			//compute sum of change between values
-			if(sumChangeStill){
-				sumChange += abs(ints[i] - ints[i+1]);
-				//check if this sumAbsChange can still be the best
-				if(sumAbsChange !=0 && sumChange > sumAbsChange)
-					sumChangeStill = 0;
-			}
+			sumChange += abs(ints[i] - ints[i+1]);
 		}
 
 		//find max and min values
@@ -203,7 +202,8 @@ void *thread(void *arg){
 			min = ints[i];
 	}
 
-
+	//averages
+	avgChange = sumChange/(args.nargs-1);
 	average = sum/args.nargs;
 
 	//compute range
@@ -227,25 +227,35 @@ void *thread(void *arg){
 		signal(2, args.semID);
 	}
 
-	//compute standard deviation
+	//compute standard deviations
 	for(i=0; i<args.nargs; i++){
 		if(stdDevStill){
 			devSum += pow(ints[i]-average, 2);
-			//check if this stdDev can still possibly be the best
 			if(stdDev !=0 && devSum > pow(stdDev, 2) * args.nargs)
 				stdDevStill = 0;
+		}
+		if(stdDevChangeStill){
+			if(i != args.nargs-1)
+				devChangeSum += pow(abs(ints[i]-ints[i+1]) - avgChange, 2);
+			if(stdDevChange !=0 && devChangeSum > pow(stdDevChange, 2) * args.nargs)
+				stdDevChangeStill = 0;
 		}
 		
 	}
 
+	//set standard deiation
 	if(stdDevStill && (stdDev == 0 || stdDev > sqrt(devSum/args.nargs))){
 		wait(3, args.semID);
 		stdDev = sqrt(devSum/args.nargs);
 		signal(3, args.semID);
 	}
 
-	//stats for this thread
-	//printf("Thread: %i\n\tAverage: %f\n", args.threadID, average);
+	//set stanard deviation of changes between values
+	if(stdDevChangeStill && (stdDevChange == 0 || stdDevChange > sqrt(devChangeSum/(args.nargs-1)))){
+		wait(4, args.semID);
+		stdDevChange = sqrt(devChangeSum/(args.nargs-1));
+		signal(4, args.semID);
+	}
 
 	pthread_exit(arg);
 }
