@@ -177,19 +177,20 @@ void *thread(void *arg){
 	average = sum/args.nargs;
 
 	if(stdDevStill){
-	for(i=0; i<args.nargs; i++){
-		devSum += pow(ints[i]-average, 2);
-		if(stdDev !=0){ //check if this stdDev can still possibly be the best
-			if(devSum > pow(stdDev, 2) * args.nargs)
-				stdDevStill = 0;
+		for(i=0; i<args.nargs; i++){
+			devSum += pow(ints[i]-average, 2);
+			if(stdDev !=0){ //check if this stdDev can still possibly be the best
+				if(devSum > pow(stdDev, 2) * args.nargs)
+					stdDevStill = 0;
+			}
 		}
-	}
-
-	if(stdDev == 0){
-		wait(3, args.semID);
-		stdDev = sqrt(devSum/args.nargs);
-		signal(3, args.semID);
-	}
+	
+		if(stdDev == 0 || stdDev > sqrt(devSum/args.nargs)){
+			wait(3, args.semID);
+			stdDev = sqrt(devSum/args.nargs);
+			printf("stdDev: %f\n", stdDev);
+			signal(3, args.semID);
+		}
 	}
 
 	//stats for this thread
