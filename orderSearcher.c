@@ -21,7 +21,8 @@ union semun{
 #endif
 
 void *thread(void *arg);
-void printGraph(int *data, int length);
+void iPrintGraph(int *data, int length);
+void fPrintGraph(double *data, int length);
 void wait(int sem, int semID);
 void signal(int sem, int semID);
 
@@ -190,7 +191,11 @@ int main(int argc, char **argv){
 		exit(-1);
 	}
 
-	printGraph(maxAbsChangeArr, numRange);
+	iPrintGraph(sumAbsChangeArr, numSumAbsChange);
+	printf("\n");
+	for(i=0; i<numSumAbsChange; i++)
+		printf("%i,", sumAbsChangeArr[i]);
+	printf("\n");
 
 	//cleanup
 	free(ints);
@@ -332,7 +337,9 @@ void *thread(void *arg){
 	pthread_exit(arg);
 }
 
-void printGraph(int *data, int length){
+void iPrintGraph(int *data, int length){
+	printf("length: %i\n", length);
+
 	const int WIDTH = length;
 	const int HEIGHT = 55;
 	char graph[HEIGHT][WIDTH];
@@ -352,19 +359,67 @@ void printGraph(int *data, int length){
 			min = data[i];
 	}
 
+	printf("Max: %i\nMin: %i\n", max, min);
+
 	int range = max - min;
 	if(range == 0)
 		range = 1;
 
-	int newVals[length];
 	for(i=0; i<length; i++){
-		newVals[i] = (((data[i] - min) * HEIGHT) / range);
-		graph[newVals[i]][i] = 'X';
+		int newVal = (((data[i] - min) * HEIGHT) / range);
+		graph[newVal][i] = 'X';
 	}
 
 
 	printf("%i\n", max);
-	for(i=0; i<HEIGHT; i++){
+	for(i=HEIGHT-1; i>=0; i--){
+		printf("|");
+		for(j=0; j<WIDTH; j++){
+			if(i == HEIGHT-1 && j == 0)
+				printf("X");
+			else
+				printf("%c", graph[i][j]);
+		}
+		printf("\n");
+	}
+	printf("+");
+	for(i=0; i<WIDTH; i++)
+		printf("-");
+	printf("\n%i\n", min);
+}
+
+void fPrintGraph(double *data, int length){
+	const int WIDTH = length;
+	const int HEIGHT = 55;
+	char graph[HEIGHT][WIDTH];
+	int i,j;
+
+	for(i=0; i<HEIGHT; i++)
+		for(j=0; j<WIDTH; j++)
+			graph[i][j] = ' ';
+
+	double max = data[0];
+	double min = data[0];
+
+	for(i=0; i<length; i++){
+		if(data[i] > max)
+			max = data[i];
+		if(data[i] < min)
+			min = data[i];
+	}
+
+	double range = max - min;
+	if(range == 0)
+		range = 1;
+
+	for(i=0; i<length; i++){
+		double newVal = (((data[i] - min) * HEIGHT) / range);
+		graph[(int) newVal][i] = 'X';
+	}
+
+
+	printf("%f\n", max);
+	for(i=HEIGHT-1; i>=0; i--){
 		printf("|");
 		for(j=0; j<WIDTH; j++){
 			printf("%c", graph[i][j]);
@@ -374,7 +429,7 @@ void printGraph(int *data, int length){
 	printf("+");
 	for(i=0; i<WIDTH; i++)
 		printf("-");
-	printf("\n%i\n", min);
+	printf("\n%f\n", min);
 
 }
 
