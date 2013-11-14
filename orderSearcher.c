@@ -48,11 +48,11 @@ int stdDevArrSize = 32 * sizeof(double);				//3
 int stdDevChangeArrSize = 32 * sizeof(double);			//4
 
 //arrays of history of best values
-int *rangeArr = malloc(rangeArrSize);					//0
-int *maxAbsChangeArr = malloc(maxAbsChangeArrSize);		//1
-int *sumAbsChangeArr = malloc(sumAbsChangeArrSize);		//2
-double *stdDevArr = malloc(stdDevArrSize);				//3
-double *stdDevChangeArr = malloc(stdDevChangeArrSize);  //4
+int *rangeArr; //= malloc(rangeArrSize);					//0
+int *maxAbsChangeArr; //= malloc(maxAbsChangeArrSize);		//1
+int *sumAbsChangeArr; //= malloc(sumAbsChangeArrSize);		//2
+double *stdDevArr; //= malloc(stdDevArrSize);				//3
+double *stdDevChangeArr; //= malloc(stdDevChangeArrSize);  //4
 
 //number of elements in each array
 int numRange = 0;			//0
@@ -99,6 +99,13 @@ int main(int argc, char **argv){
 		printf("Error Seeking");
 		exit(-1);
 	}
+
+	//malloc arrays
+	rangeArr = malloc(rangeArrSize);
+	maxAbsChangeArr = malloc(maxAbsChangeArrSize);
+	sumAbsChangeArr = malloc(sumAbsChangeArrSize);
+	stdDevArr = malloc(stdDevArrSize);
+	stdDevChangeArr = malloc(stdDevChangeArrSize);
 
 	//read in from file
 	char *inBuffer = malloc(size * sizeof(char));
@@ -260,7 +267,7 @@ void *thread(void *arg){
 		}
 		maxAbsChange = maxChange;
 		maxAbsChangeArr[numMaxAbsChange] = maxAbsChange;
-		numMaxAbChange++;
+		numMaxAbsChange++;
 		signal(1, args.semID);
 	}
 
