@@ -13,10 +13,10 @@
 #if defined(_GNU_LIBRARY_) && !defined(_SEM_SEMUN_UNDEFINED_)
 #else
 union semun{
-        int val;
-        struct semid_ds *buf;
-        unsigned short *array;
-        struct seminfo *_buf;
+	int val;
+	struct semid_ds *buf;
+	unsigned short *array;
+	struct seminfo *_buf;
 } semArg;
 #endif
 
@@ -31,14 +31,35 @@ struct threadArgs{
 	int *arg;
 };
 
+const int NUM_GLOBALS = 5;
+
+//current bests
 int range = 0;				//0 - The range, defined as the difference between the largest and smallest value in the data set.
 int maxAbsChange = 0;		//1 - Maximum absolute value of change from one value to the next
 int sumAbsChange = 0;		//2 - The sum of ( absolute value of ( change from one value to the next ))
 double stdDev = 0;			//3 - Standard deviation --> sqrt(avg((xi-AVG)^2))
 double stdDevChange = 0;	//4 - Standard deviation of the change between each element
 
+//size of arrays of history of best values
+int rangeArrSize = 32 * sizeof(int);					//0
+int maxAbsChangeArrSize = 32 * sizeof(int);				//1
+int sumAbsChangeArrSize = 32 * sizeof(int);				//2
+int stdDevArrSize = 32 * sizeof(double);				//3
+int stdDevChangeArrSize = 32 * sizeof(double);			//4
 
-const int NUM_GLOBALS = 5;
+//arrays of history of best values
+int *rangeArr = malloc(rangeArrSize);					//0
+int *maxAbsChangeArr = malloc(maxAbsChangeArrSize);		//1
+int *sumAbsChangeArr = malloc(sumAbsChangeArrSize);		//2
+double *stdDevArr = malloc(stdDevArrSize);				//3
+double *stdDevChangeArr = malloc(stdDevChangeArrSize);  //4
+
+//number of elements in each array
+int numRange = 0;			//0
+int numMaxAbsChange = 0;	//1
+int numSumAbsChange = 0;	//2
+int numStdDev = 0;			//3
+int numStdDevChange = 0;	//4
 
 
 int main(int argc, char **argv){
@@ -160,10 +181,20 @@ int main(int argc, char **argv){
 		perror("Error removing semaphores ");
 		exit(-1);
 	}
+
+	//cleanup
 	free(ints);
+	free(rangeArr);
+	free(maxAbsChangeArr);
+	free(sumAbsChangeArr);
+	free(stdDevArr);
+	free(stdDevChangeArr);
+
 	return 0; 
 }
 
+
+//thread function
 void *thread(void *arg){	
 	struct threadArgs args = *((struct threadArgs*) arg); //convert back to struct
 	int *ints = args.arg; //array of ints for math
@@ -207,23 +238,42 @@ void *thread(void *arg){
 	average = sum/args.nargs;
 
 	//compute range
-	if(range == 0 || max-min < range){
+	if(numRange == 0 || max-min < range){
 		wait(0, args.semID);
+		if(numRange == rangeArrSize-1){
+			rangeArr = realloc(rangeArr, rangeArrSize *2);
+			rangeArrSize *= 2;
+		}
 		range = max-min;
+		rangeArr[numRange] = range;
+		numRange++;
+
 		signal(0, args.semID);
 	}
 
 	//compute maximum absolute change
-	if(maxAbsChange == 0 || maxChange < maxAbsChange){
+	if(numMaxAbsChange == 0 || maxChange < maxAbsChange){
 		wait(1, args.semID);
+		if(numMaxAbsChange == maxAbsChangeArrSize-1){
+			maxAbsChangeArr = realloc(maxAbsChangeArr, maxAbsChangeArrSize *2);
+			maxAbsChangeArrSize *=2;
+		}
 		maxAbsChange = maxChange;
+		maxAbsChangeArr[numMaxAbsChange] = maxAbsChange;
+		numMaxAbChange++;
 		signal(1, args.semID);
 	}
 
 	//set sumAbsChange
-	if(sumChangeStill && (sumAbsChange == 0 || sumChange < sumAbsChange)){
+	if(sumChangeStill && (numSumAbsChange == 0 || sumChange < sumAbsChange)){
 		wait(2, args.semID);
+		if(numSumAbsChange == sumAbsChangeArrSize-1){
+			sumAbsChangeArr = realloc(sumAbsChangeArr, sumAbsChangeArrSize *2);
+			sumAbsChangeArrSize *=2;
+		}
 		sumAbsChange = sumChange;
+		sumAbsChangeArr[numSumAbsChange] = sumAbsChange;
+		numSumAbsChange++;
 		signal(2, args.semID);
 	}
 
@@ -243,17 +293,29 @@ void *thread(void *arg){
 		
 	}
 
-	//set standard deiation
-	if(stdDevStill && (stdDev == 0 || stdDev > sqrt(devSum/args.nargs))){
+	//set standard deviation
+	if(stdDevStill && (numStdDev == 0 || stdDev > sqrt(devSum/args.nargs))){
 		wait(3, args.semID);
+		if(numStdDev == stdDevArrSize-1){
+			stdDevArr = realloc(stdDevArr, stdDevArrSize*2);
+			stdDevArrSize *=2;
+		}
 		stdDev = sqrt(devSum/args.nargs);
+		stdDevArr[numStdDev] = stdDev;
+		numStdDev++;
 		signal(3, args.semID);
 	}
 
 	//set stanard deviation of changes between values
-	if(stdDevChangeStill && (stdDevChange == 0 || stdDevChange > sqrt(devChangeSum/(args.nargs-1)))){
+	if(stdDevChangeStill && (numStdDevChange == 0 || stdDevChange > sqrt(devChangeSum/(args.nargs-1)))){
 		wait(4, args.semID);
+		if(numStdDevChange == stdDevChangeArrSize-1){
+			stdDevChangeArr = realloc(stdDevChangeArr, stdDevChangeArrSize *2);
+			stdDevChangeArrSize *=2;
+		}
 		stdDevChange = sqrt(devChangeSum/(args.nargs-1));
+		stdDevChangeArr[numStdDevChange] = stdDevChange;
+		numStdDevChange++;
 		signal(4, args.semID);
 	}
 
