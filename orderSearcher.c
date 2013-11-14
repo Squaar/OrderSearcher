@@ -199,15 +199,12 @@ int main(int argc, char **argv){
 		printf("\t3 - Sum of changes between values\n");
 		printf("\t4 - Standard deviation\n");
 		printf("\t5 - Standard deviation of changes between values\n");
-		printf("\t0 - Exit\n>");
+		printf("\t0 - Exit\n> ");
 
-		int choice;
+		int choice = 0;
 
 		scanf("%i", &choice);
 		switch(choice){
-			case 0:
-				run=0;
-				break;
 			case 1:
 				iPrintGraph(rangeArr, numRange);
 				break;
@@ -222,6 +219,9 @@ int main(int argc, char **argv){
 				break;
 			case 5:
 				fPrintGraph(stdDevChangeArr, numStdDevChange);
+				break;
+			default: 
+				run = 0;
 				break;
 		}
 
