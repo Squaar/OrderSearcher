@@ -21,6 +21,7 @@ union semun{
 #endif
 
 void *thread(void *arg);
+void printGraph(int *data, int length);
 void wait(int sem, int semID);
 void signal(int sem, int semID);
 
@@ -189,6 +190,8 @@ int main(int argc, char **argv){
 		exit(-1);
 	}
 
+	printGraph(maxAbsChangeArr, numRange);
+
 	//cleanup
 	free(ints);
 	free(rangeArr);
@@ -329,7 +332,51 @@ void *thread(void *arg){
 	pthread_exit(arg);
 }
 
+void printGraph(int *data, int length){
+	const int WIDTH = length;
+	const int HEIGHT = 55;
+	char graph[HEIGHT][WIDTH];
+	int i,j;
 
+	for(i=0; i<HEIGHT; i++)
+		for(j=0; j<WIDTH; j++)
+			graph[i][j] = ' ';
+
+	int max = data[0];
+	int min = data[0];
+
+	for(i=0; i<length; i++){
+		if(data[i] > max)
+			max = data[i];
+		if(data[i] < min)
+			min = data[i];
+	}
+
+	int range = max - min;
+	if(range == 0)
+		range = 1;
+
+	int newVals[length];
+	for(i=0; i<length; i++){
+		newVals[i] = (((data[i] - min) * HEIGHT) / range);
+		graph[newVals[i]][i] = 'X';
+	}
+
+
+	printf("%i\n", max);
+	for(i=0; i<HEIGHT; i++){
+		printf("|");
+		for(j=0; j<WIDTH; j++){
+			printf("%c", graph[i][j]);
+		}
+		printf("\n");
+	}
+	printf("+");
+	for(i=0; i<WIDTH; i++)
+		printf("-");
+	printf("\n%i\n", min);
+
+}
 
 void wait(int sem, int semID){
 	struct sembuf sembuffer;
