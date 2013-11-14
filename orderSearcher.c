@@ -50,11 +50,11 @@ int stdDevArrSize = 32 * sizeof(double);				//3
 int stdDevChangeArrSize = 32 * sizeof(double);			//4
 
 //arrays of history of best values
-int *rangeArr; //= malloc(rangeArrSize);					//0
-int *maxAbsChangeArr; //= malloc(maxAbsChangeArrSize);		//1
-int *sumAbsChangeArr; //= malloc(sumAbsChangeArrSize);		//2
-double *stdDevArr; //= malloc(stdDevArrSize);				//3
-double *stdDevChangeArr; //= malloc(stdDevChangeArrSize);  //4
+int *rangeArr; 					//0
+int *maxAbsChangeArr; 			//1
+int *sumAbsChangeArr; 			//2
+double *stdDevArr; 				//3
+double *stdDevChangeArr;  		//4
 
 //number of elements in each array
 int numRange = 0;			//0
@@ -178,10 +178,10 @@ int main(int argc, char **argv){
 	}
 
 	//print best results
-	printf("\nMinimum Range: %i\n", range);
-	printf("Minimum Change between values: %i\n", maxAbsChange);
-	printf("minimum sum of changes between values: %i\n", sumAbsChange);
-	printf("Minimum Standard Deviation: %f\n", stdDev);
+	printf("\nMinimum range: %i\n", range);
+	printf("Minimum change between values: %i\n", maxAbsChange);
+	printf("Minimum sum of changes between values: %i\n", sumAbsChange);
+	printf("Minimum standard deviation: %f\n", stdDev);
 	printf("Minimum standard deviation of changes between values: %f\n", stdDevChange);
 	
 
@@ -190,12 +190,42 @@ int main(int argc, char **argv){
 		perror("Error removing semaphores ");
 		exit(-1);
 	}
+	
+	int run = 1;
+	while(run){
+		printf("\nWhat would you like to graph?\n");
+		printf("\t1 - Range\n");
+		printf("\t2 - Change between values\n");
+		printf("\t3 - Sum of changes between values\n");
+		printf("\t4 - Standard deviation\n");
+		printf("\t5 - Standard deviation of changes between values\n");
+		printf("\t0 - Exit\n>");
 
-	iPrintGraph(sumAbsChangeArr, numSumAbsChange);
-	printf("\n");
-	for(i=0; i<numSumAbsChange; i++)
-		printf("%i,", sumAbsChangeArr[i]);
-	printf("\n");
+		int choice;
+
+		scanf("%i", &choice);
+		switch(choice){
+			case 0:
+				run=0;
+				break;
+			case 1:
+				iPrintGraph(rangeArr, numRange);
+				break;
+			case 2:
+				iPrintGraph(maxAbsChangeArr, numMaxAbsChange);
+				break;
+			case 3:
+				iPrintGraph(sumAbsChangeArr, numSumAbsChange);
+				break;
+			case 4:
+				fPrintGraph(stdDevArr, numStdDev);
+				break;
+			case 5:
+				fPrintGraph(stdDevChangeArr, numStdDevChange);
+				break;
+		}
+
+	}
 
 	//cleanup
 	free(ints);
@@ -338,8 +368,6 @@ void *thread(void *arg){
 }
 
 void iPrintGraph(int *data, int length){
-	printf("length: %i\n", length);
-
 	const int WIDTH = length;
 	const int HEIGHT = 55;
 	char graph[HEIGHT][WIDTH];
@@ -359,8 +387,6 @@ void iPrintGraph(int *data, int length){
 			min = data[i];
 	}
 
-	printf("Max: %i\nMin: %i\n", max, min);
-
 	int range = max - min;
 	if(range == 0)
 		range = 1;
@@ -371,7 +397,7 @@ void iPrintGraph(int *data, int length){
 	}
 
 
-	printf("%i\n", max);
+	printf("\n%i\n", max);
 	for(i=HEIGHT-1; i>=0; i--){
 		printf("|");
 		for(j=0; j<WIDTH; j++){
@@ -418,11 +444,14 @@ void fPrintGraph(double *data, int length){
 	}
 
 
-	printf("%f\n", max);
+	printf("\n%f\n", max);
 	for(i=HEIGHT-1; i>=0; i--){
 		printf("|");
 		for(j=0; j<WIDTH; j++){
-			printf("%c", graph[i][j]);
+			if(i == HEIGHT-1 && j == 0)
+				printf("X");
+			else
+				printf("%c", graph[i][j]);
 		}
 		printf("\n");
 	}
