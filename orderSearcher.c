@@ -382,7 +382,7 @@ void *thread(void *arg){
 //print graph for integers
 void iPrintGraph(int *data, int length){
 	const int WIDTH = length;
-	const int HEIGHT = 55;
+	const int HEIGHT = 25;
 	char graph[HEIGHT][WIDTH];
 	int i,j;
 
@@ -433,7 +433,7 @@ void iPrintGraph(int *data, int length){
 //print graph for floating point values
 void fPrintGraph(double *data, int length){
 	const int WIDTH = length;
-	const int HEIGHT = 55;
+	const int HEIGHT = 25;
 	char graph[HEIGHT][WIDTH];
 	int i,j;
 

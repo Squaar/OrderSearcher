@@ -22,3 +22,8 @@ their portions of the file:
 There are no known errors, but the range and maximum absolute value of change from one value
 to the next almost always return 255 and 0 respectively. This is accurate though because almost
 any file will have a 0 and a 255 in it and two of the same number in a row somewhere.
+
+After the program prints the statistics for the file, you can choose to print a graph for any of
+the statistics that plots the history of the best value of the statistic. These graphs show how
+over time, the threads find better and better values as the plots on the graph approach the 
+x axis.
