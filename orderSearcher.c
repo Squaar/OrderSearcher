@@ -1,5 +1,11 @@
-//Matt Dumford - mdumford
-//mdumfo2@uic.edu
+/*
+* Matt Dumford - mdumford
+* mdumfo2@uic.edu
+*
+* OrderSearcher
+*
+* Uses threads to search for order in data and computes statistics for files.
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,6 +16,7 @@
 #include <math.h>
 #include <sys/sem.h>
 
+//semaphore struct
 #if defined(_GNU_LIBRARY_) && !defined(_SEM_SEMUN_UNDEFINED_)
 #else
 union semun{
@@ -20,12 +27,14 @@ union semun{
 } semArg;
 #endif
 
+//functions
 void *thread(void *arg);
 void iPrintGraph(int *data, int length);
 void fPrintGraph(double *data, int length);
 void wait(int sem, int semID);
 void signal(int sem, int semID);
 
+//struct to be passed to thread as argument
 struct threadArgs{
 	int semID;
 	int threadID;
@@ -65,6 +74,7 @@ int numStdDevChange = 0;	//4
 
 
 int main(int argc, char **argv){
+	//get args
 	if(argc != 3){
 		printf("Invalid number of args.\n");
 		exit(-1);
@@ -102,7 +112,7 @@ int main(int argc, char **argv){
 		exit(-1);
 	}
 
-	//malloc arrays
+	//malloc arrays of best values
 	rangeArr = malloc(rangeArrSize);
 	maxAbsChangeArr = malloc(maxAbsChangeArrSize);
 	sumAbsChangeArr = malloc(sumAbsChangeArrSize);
@@ -191,6 +201,7 @@ int main(int argc, char **argv){
 		exit(-1);
 	}
 	
+	//loop and print graphs
 	int run = 1;
 	while(run){
 		printf("\nWhat would you like to graph?\n");
@@ -255,6 +266,7 @@ void *thread(void *arg){
 	double devSum = 0;
 	double devChangeSum = 0;
 
+	//booleans keep track of whether or not to keep calculating
 	int stdDevStill = 1;
 	int sumChangeStill = 1;
 	int stdDevChangeStill = 1;
@@ -367,19 +379,21 @@ void *thread(void *arg){
 	pthread_exit(arg);
 }
 
+//print graph for integers
 void iPrintGraph(int *data, int length){
 	const int WIDTH = length;
 	const int HEIGHT = 55;
 	char graph[HEIGHT][WIDTH];
 	int i,j;
 
+	//clear array
 	for(i=0; i<HEIGHT; i++)
 		for(j=0; j<WIDTH; j++)
 			graph[i][j] = ' ';
 
+	//get max and min
 	int max = data[0];
 	int min = data[0];
-
 	for(i=0; i<length; i++){
 		if(data[i] > max)
 			max = data[i];
@@ -387,16 +401,18 @@ void iPrintGraph(int *data, int length){
 			min = data[i];
 	}
 
+	//range
 	int range = max - min;
 	if(range == 0)
 		range = 1;
 
+	//convert all values to new scale and put in array
 	for(i=0; i<length; i++){
 		int newVal = (((data[i] - min) * HEIGHT) / range);
 		graph[newVal][i] = 'X';
 	}
 
-
+	//print out array
 	printf("\n%i\n", max);
 	for(i=HEIGHT-1; i>=0; i--){
 		printf("|");
@@ -414,19 +430,21 @@ void iPrintGraph(int *data, int length){
 	printf("\n%i\n", min);
 }
 
+//print graph for floating point values
 void fPrintGraph(double *data, int length){
 	const int WIDTH = length;
 	const int HEIGHT = 55;
 	char graph[HEIGHT][WIDTH];
 	int i,j;
 
+	//clear array
 	for(i=0; i<HEIGHT; i++)
 		for(j=0; j<WIDTH; j++)
 			graph[i][j] = ' ';
 
+	//get max and min
 	double max = data[0];
 	double min = data[0];
-
 	for(i=0; i<length; i++){
 		if(data[i] > max)
 			max = data[i];
@@ -434,16 +452,18 @@ void fPrintGraph(double *data, int length){
 			min = data[i];
 	}
 
+	//range
 	double range = max - min;
 	if(range == 0)
 		range = 1;
 
+	//convert to new scale and put in array
 	for(i=0; i<length; i++){
 		double newVal = (((data[i] - min) * HEIGHT) / range);
 		graph[(int) newVal][i] = 'X';
 	}
 
-
+	//print out array
 	printf("\n%f\n", max);
 	for(i=HEIGHT-1; i>=0; i--){
 		printf("|");
@@ -462,6 +482,7 @@ void fPrintGraph(double *data, int length){
 
 }
 
+//semaphore wait
 void wait(int sem, int semID){
 	struct sembuf sembuffer;
 	sembuffer.sem_num = sem;
@@ -474,6 +495,7 @@ void wait(int sem, int semID){
 	}
 }
 
+//semaphore signal
 void signal(int sem, int semID){
 	struct sembuf sembuffer;
 	sembuffer.sem_num = sem;
